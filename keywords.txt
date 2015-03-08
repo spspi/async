@@ -1,0 +1,45 @@
+#######################################
+# Syntax Coloring Map For Async
+#######################################
+
+#######################################
+# Datatypes (KEYWORD3)
+#######################################
+
+Async	KEYWORD3
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+timediff	KEYWORD2
+interval	KEYWORD2
+intervalms	KEYWORD2
+timeout	KEYWORD2
+timeoutms	KEYWORD2
+clearSlot	KEYWORD2
+getFreeSlot	KEYWORD2
+pulse	KEYWORD2
+pulsems	KEYWORD2
+pulseIn	KEYWORD2
+pinBudy	KEYWORD2
+clearPin	KEYWORD2
+
+#######################################
+# Others (KEYWORD1)
+#######################################
+
+pinFired	KEYWORD1
+pinDelay	KEYWORD1
+pinReading	KEYWORD1
+fn	KEYWORD1
+fnPeriod	KEYWORD1
+time	KEYWORD1
+quantum	KEYWORD1
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+ASYNC_SLOTS	LITERAL1
+ASYNC_PINS	LITERAL2
