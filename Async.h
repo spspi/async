@@ -28,16 +28,15 @@
  * @version 1.0, 2015
  */
 class asyncclass {
-  typedef void(*handler)(); /// this is the format of handlers mentioned below - void f(), where "f" is any function
+  typedef void(*handler)(void*); /// this is the format of handlers mentioned below - void f(), where "f" is any function
   typedef unsigned long ulong;
 
-  static void nullfn() { }
-  ulong fnStamp[ASYNC_SLOTS];
+  static void nullfn(void*) { }
   bool fnRepeat[ASYNC_SLOTS];
   ulong pinVal[ASYNC_SLOTS];
   static int noChange;
 
-  int setSlot(handler fn, ulong us, int slot, bool repValue);
+  int setSlot(void* context, handler fn, ulong us, int slot, bool repValue);
   void loopSlots();
   void loopPins();
 
@@ -46,7 +45,9 @@ public:
     pinFired[ASYNC_PINS], /// fire time of corresponding pin caused by Async.pulse or Async.pulseIn; should be read only
     pinDelay[ASYNC_PINS], /// how long should pin fire; can be altered anytime
     pinReading[ASYNC_PINS], /// when pin was asked to measure pulseIn; the time between request and actual fire equals to pinFired[i]-pinReading[i]
+    fnStamp[ASYNC_SLOTS],
     fnPeriod[ASYNC_SLOTS]; /// time period of calling the handler at corresponding slot; can be altered anytime
+  void* fnContext[ASYNC_SLOTS]; /// eventual object context of the handler; can be altered anytime
   handler fn[ASYNC_SLOTS]; /// handler at corresponding slot; can be altered anytime
   ulong
     time, /// set to micro() every loop
@@ -57,25 +58,29 @@ public:
   
   /**
    * Compute time difference between from a to times (in proper units: ms or us).
+   * If to=0 it is assigned the Async.time value
    * Handles time oferflow, which uccurs
    *  - every 70 minutes calling micros()
    *  - every 50 days calling millis()
    */
-   ulong timediff(ulong from, ulong to);
+   ulong timediff(ulong from, ulong to=0);
 
   /**
    * Call handler periodically
+   * @param void* context object where the handler belongs as a method
    * @param handler f handler to execute
    * @param ulong us execution period in microseconds
    * @param int slot where to place the handler (0 - ASYNC_SLOTS); if not specified (or -1) the first free slot is taken
    * @return int slot used for handler; -1 = couldn't find free slot
    */
+  int interval(void* context, handler f, ulong us, int slot=-1);
   int interval(handler f, ulong us, int slot=-1);
   
   /**
    * Same as interval, but the period is in milliseconds
    * @see interval
    */
+  int intervalms(void* context, handler f, ulong ms, int slot=-1);
   int intervalms(handler f, ulong ms, int slot=-1);
 
   /**
@@ -83,13 +88,17 @@ public:
    * The slot is auto-cleared after the period.
    * @see interval
    */
+  int timeout(void* context, handler f, ulong us, int slot=-1);
   int timeout(handler f, ulong us, int slot=-1);
 
   /**
    * Same as timeout but the period is in milliseconds
    * @see timeout
    */  
+  int timeoutms(void* context, handler f, ulong ms, int slot=-1);
   int timeoutms(handler f, ulong ms, int slot=-1);
+  
+  void changePeriod(int slot, ulong us);
 
   /**
    * Clears slot at specified position.

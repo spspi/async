@@ -14,9 +14,9 @@ asyncclass::asyncclass() {
 void asyncclass::loopSlots() {
   for(int i=0; i<ASYNC_SLOTS; ++i) {
     if(fn[i]==asyncclass::nullfn) continue;
-    if(timediff(fnStamp[i], time) >= fnPeriod[i]) {
+    if(timediff(fnStamp[i]) >= fnPeriod[i]) {
       fnStamp[i] = time;
-      fn[i]();
+      fn[i](fnContext[i]);
       if(!fnRepeat[i]) clearSlot(i);
     }
   }
@@ -25,8 +25,8 @@ void asyncclass::loopSlots() {
 void asyncclass::loopPins() {
   for(int i=0; i<ASYNC_PINS; ++i) {
     if(pinFired[i]==0 && pinReading[i]==0) continue;
-    int notVal = pinVal[i]==HIGH ? LOW : HIGH;
-    if(pinReading[i]==0 && timediff(pinFired[i],time) >= pinDelay[i]) {
+    int notVal = pinVal[i]==LOW ? HIGH : LOW;
+    if(pinReading[i]==0 && timediff(pinFired[i]) >= pinDelay[i]) {
       digitalWrite(i, notVal);
       pinFired[i] = pinDelay[i] = 0;
     }
@@ -46,13 +46,15 @@ void asyncclass::loop() {
 }
 
 unsigned long asyncclass::timediff(ulong from, ulong to) {
+	if(to==0) to = time;
   if(to >= from) return to - from;
   return ULONG_MAX - from + to;
 }
 
-int asyncclass::setSlot(handler f, ulong us, int slot, bool repValue) {
+int asyncclass::setSlot(void* context, handler f, ulong us, int slot, bool repValue) {
   if(slot==-1) slot = getFreeSlot();
   if(slot==-1) return slot;
+  fnContext[slot] = context;
   fn[slot] = f;
   fnPeriod[slot] = us;
   fnStamp[slot] = 0;
@@ -61,20 +63,38 @@ int asyncclass::setSlot(handler f, ulong us, int slot, bool repValue) {
 }
 
 int asyncclass::interval(handler f, ulong us, int slot) {
-  return setSlot(f, us, slot, true);
+  return setSlot(NULL, f, us, slot, true);
+}
+int asyncclass::interval(void* context, handler f, ulong us, int slot) {
+  return setSlot(context, f, us, slot, true);
 }
 
 int asyncclass::intervalms(handler f, ulong ms, int slot) {
-  return setSlot(f, ms*1000, slot, true);
+  return setSlot(NULL, f, ms*1000, slot, true);
+}
+int asyncclass::intervalms(void* context, handler f, ulong ms, int slot) {
+  return setSlot(context, f, ms*1000, slot, true);
 }
 
 int asyncclass::timeout(handler f, ulong us, int slot) {
-  return setSlot(f, us, slot, false);
+  return setSlot(NULL, f, us, slot, false);
+}
+int asyncclass::timeout(void* context, handler f, ulong us, int slot) {
+  return setSlot(context, f, us, slot, false);
 }
 
 int asyncclass::timeoutms(handler f, ulong ms, int slot) {
-  return setSlot(f, ms*1000, slot, false);
+  return setSlot(NULL, f, ms*1000, slot, false);
 }
+int asyncclass::timeoutms(void* context, handler f, ulong ms, int slot) {
+  return setSlot(context, f, ms*1000, slot, false);
+}
+
+void asyncclass::changePeriod(int slot, ulong us) {
+  fnPeriod[slot] = us;
+  fnStamp[slot] = Async.time;
+}
+
 
 int asyncclass::getFreeSlot() {
   for(int i=0; i<ASYNC_SLOTS; ++i) if(fn[i]==asyncclass::nullfn) return i;
@@ -87,7 +107,8 @@ void asyncclass::clearSlot(int slot) {
 
 void asyncclass::pulse(int pin, ulong us, int value) {
   pinMode(pin, OUTPUT);
-  digitalWrite(pin, value);
+  if(value==HIGH || value==LOW) digitalWrite(pin, value);
+  else analogWrite(pin, value);
   pinFired[pin] = time;
   pinDelay[pin] = us;
   pinVal[pin] = value;
